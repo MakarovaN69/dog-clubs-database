@@ -1,0 +1,359 @@
+--создание базы данных
+CREATE DATABASE "db_dogClubs"
+    WITH 
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'Russian_Russia.1251'
+    LC_CTYPE = 'Russian_Russia.1251'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1;
+--создание таблиц
+CREATE TABLE IF NOT EXISTS public.award
+(
+    award_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    award_name text COLLATE pg_catalog."default" NOT NULL,
+    cash_eq integer NOT NULL,
+    CONSTRAINT award_pkey PRIMARY KEY (award_id),
+    CONSTRAINT awarduniq UNIQUE (award_name)
+)
+CREATE TABLE IF NOT EXISTS public.awarding
+(
+    awarding_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    participant_id integer NOT NULL,
+    award_id integer NOT NULL,
+    CONSTRAINT awarding_pkey PRIMARY KEY (awarding_id),
+    CONSTRAINT award_id FOREIGN KEY (award_id)
+        REFERENCES public.award (award_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT participant_id FOREIGN KEY (participant_id)
+        REFERENCES public.participation (participant_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+CREATE TABLE IF NOT EXISTS public.bank
+(
+    bank_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    bank text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT bank_pkey PRIMARY KEY (bank_id),
+    CONSTRAINT bankuniq UNIQUE (bank)
+)
+CREATE TABLE IF NOT EXISTS public.breed
+(
+    breed_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    breed text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT breed_pkey PRIMARY KEY (breed_id),
+    CONSTRAINT breeduniq UNIQUE (breed)
+)
+CREATE TABLE IF NOT EXISTS public.city
+(
+    city_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    city text COLLATE pg_catalog."default" NOT NULL,
+    region_id integer NOT NULL,
+    CONSTRAINT city_pkey PRIMARY KEY (city_id),
+    CONSTRAINT cityuniq UNIQUE (city),
+    CONSTRAINT region_id FOREIGN KEY (region_id)
+        REFERENCES public.region (region_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+CREATE TABLE IF NOT EXISTS public.club
+(
+    club_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    club_name text COLLATE pg_catalog."default" NOT NULL,
+    district_id integer NOT NULL,
+    address text COLLATE pg_catalog."default" NOT NULL,
+    "number" integer NOT NULL,
+    year_opened integer NOT NULL,
+    ent_fee integer NOT NULL,
+    licences integer NOT NULL,
+    end_licences date,
+    CONSTRAINT club_pkey PRIMARY KEY (club_id),
+    CONSTRAINT clubuniq UNIQUE (club_name),
+    CONSTRAINT licencesuniq UNIQUE (licences),
+    CONSTRAINT numuniq UNIQUE ("number"),
+    CONSTRAINT district_id FOREIGN KEY (district_id)
+        REFERENCES public.district (district_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT club_year_opened_check CHECK (year_opened <= 2022 AND year_opened >= 1950),
+    CONSTRAINT club_ent_fee_check CHECK (ent_fee <= 5000 AND ent_fee >= 500),
+    CONSTRAINT club_end_licences_check CHECK (end_licences >= CURRENT_DATE AND end_licences <= '2023-12-31'::date)
+)
+CREATE TABLE IF NOT EXISTS public.competition
+(
+    competition_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    compet_name text COLLATE pg_catalog."default" NOT NULL,
+    bank_id integer NOT NULL,
+    pay_account text COLLATE pg_catalog."default" NOT NULL,
+    city_id integer NOT NULL,
+    venue_id integer NOT NULL,
+    date_event date,
+    partic_fee integer NOT NULL,
+    number_viewers integer NOT NULL,
+    CONSTRAINT competition_pkey PRIMARY KEY (competition_id),
+    CONSTRAINT competitionuniq UNIQUE (compet_name),
+    CONSTRAINT payacuniq UNIQUE (pay_account),
+    CONSTRAINT bank_id FOREIGN KEY (bank_id)
+        REFERENCES public.bank (bank_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT city_id FOREIGN KEY (city_id)
+        REFERENCES public.city (city_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT venue_id FOREIGN KEY (venue_id)
+        REFERENCES public.venue (venue_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT competition_date_event_check CHECK (date_event >= CURRENT_DATE AND date_event <= '2025-01-01'::date),
+    CONSTRAINT competition_partic_fee_check CHECK (partic_fee <= 5000 AND partic_fee >= 500),
+    CONSTRAINT competition_number_viewers_check CHECK (number_viewers <= 1000 AND number_viewers >= 100)
+)
+CREATE TABLE IF NOT EXISTS public.district
+(
+    district_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    district_name text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT district_pkey PRIMARY KEY (district_id),
+    CONSTRAINT districtuniq UNIQUE (district_name)
+)
+CREATE TABLE IF NOT EXISTS public.dog
+(
+    dog_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    nickname text COLLATE pg_catalog."default" NOT NULL,
+    owner_id integer NOT NULL,
+    breed_id integer NOT NULL,
+    club_id integer NOT NULL,
+    year_birth integer NOT NULL,
+    price integer NOT NULL,
+    foto bytea,
+    CONSTRAINT dog_pkey PRIMARY KEY (dog_id),
+    CONSTRAINT doguniq UNIQUE (nickname),
+    CONSTRAINT breed_id FOREIGN KEY (breed_id)
+        REFERENCES public.breed (breed_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT club_id FOREIGN KEY (club_id)
+        REFERENCES public.club (club_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT owner_id FOREIGN KEY (owner_id)
+        REFERENCES public.owner (owner_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT dog_year_birth_check CHECK (year_birth <= 2022 AND year_birth >= 2017),
+    CONSTRAINT dog_price_check CHECK (price <= 100000 AND price >= 100)
+)
+CREATE TABLE IF NOT EXISTS public.owner
+(
+    owner_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    surname text COLLATE pg_catalog."default" NOT NULL,
+    name text COLLATE pg_catalog."default" NOT NULL,
+    midname text COLLATE pg_catalog."default" NOT NULL,
+    address text COLLATE pg_catalog."default" NOT NULL,
+    "number" integer NOT NULL,
+    CONSTRAINT owner2_pkey PRIMARY KEY (owner_id),
+    CONSTRAINT owneruniq UNIQUE ("number")
+)
+CREATE TABLE IF NOT EXISTS public.participation
+(
+    participant_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    dog_id integer NOT NULL,
+    competition_id integer NOT NULL,
+    CONSTRAINT participation_pkey PRIMARY KEY (participant_id),
+    CONSTRAINT competition_id FOREIGN KEY (competition_id)
+        REFERENCES public.competition (competition_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT dog_id FOREIGN KEY (dog_id)
+        REFERENCES public.dog (dog_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+CREATE TABLE IF NOT EXISTS public.region
+(
+    region_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    region text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT region_pkey PRIMARY KEY (region_id),
+    CONSTRAINT regionuniq UNIQUE (region)
+)
+CREATE TABLE IF NOT EXISTS public.venue
+(
+    venue_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    venue text COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT venue_pkey PRIMARY KEY (venue_id),
+    CONSTRAINT venueuniq UNIQUE (venue)
+)
+--создание вьюшек
+CREATE VIEW all_comp_view AS
+SELECT  competition_id, compet_name, bank.bank, pay_account, city.city, venue.venue, date_event, partic_fee, number_viewers FROM competition 
+INNER JOIN bank ON  competition.bank_id=bank.bank_id
+INNER JOIN city ON  competition.city_id=city.city_id
+INNER JOIN venue ON  competition.venue_id=venue.venue_id
+ORDER BY competition_id ASC;							
+							
+CREATE VIEW all_club_view AS
+SELECT  club_id, club_name, district.district_name, address, "number", year_opened, ent_fee, licences, end_licences FROM club 
+INNER JOIN district ON club.district_id=district.district_id
+ORDER BY club_id ASC;
+							
+CREATE VIEW dog_view AS	
+SELECT dog_id, nickname, concat (owner.surname, ' ', owner.name, ' ', owner.midname) ownerfullName, breed.breed, club.club_name, year_birth, price, foto FROM dog
+INNER JOIN owner ON  dog.owner_id=owner.owner_id
+INNER JOIN breed ON  dog.breed_id=breed.breed_id
+INNER JOIN club ON  dog.club_id=club.club_id
+ORDER BY dog_id ASC;
+
+CREATE VIEW part_view AS
+SELECT participant_id, dog.nickname, breed.breed,concat (owner.surname, ' ', owner.name, ' ', owner.midname) ownerfullName, club.club_name, competition.compet_name, city.city, venue.venue,competition.date_event FROM participation
+INNER JOIN dog ON  participation.dog_id=dog.dog_id
+INNER JOIN breed ON  dog.breed_id=breed.breed_id
+INNER JOIN owner ON  dog.owner_id=owner.owner_id
+INNER JOIN club ON  dog.club_id=club.club_id
+INNER JOIN competition ON  participation.competition_id=competition.competition_id
+INNER JOIN city ON  competition.city_id=city.city_id
+INNER JOIN venue ON  competition.venue_id=venue.venue_id
+ORDER BY participant_id ASC;
+																									
+CREATE VIEW city_view AS
+SELECT city_id, city, region.region FROM city
+INNER JOIN region ON  city.region_id=region.region_id
+ORDER BY city_id ASC;
+												
+CREATE VIEW awarding_view AS
+SELECT awarding.participant_id, dog.nickname, breed.breed,concat (owner.surname, ' ', owner.name, ' ', owner.midname) ownerfullName, club.club_name, competition.compet_name, award.award_name, award.cash_eq FROM awarding
+INNER JOIN participation ON participation.participant_id=awarding.participant_id
+INNER JOIN dog ON  participation.dog_id=dog.dog_id
+INNER JOIN breed ON  dog.breed_id=breed.breed_id
+INNER JOIN owner ON  dog.owner_id=owner.owner_id
+INNER JOIN club ON  dog.club_id=club.club_id
+INNER JOIN competition ON participation.competition_id=competition.competition_id
+INNER JOIN award ON  awarding.award_id=award.award_id
+ORDER BY awarding_id ASC;
+--создание триггеров
+CREATE OR REPLACE FUNCTION trigger_awarding_before_del() RETURNS TRIGGER AS 
+$$
+ BEGIN
+  DELETE FROM awarding  
+  WHERE participant_id = OLD.participant_id;
+  RETURN OLD;
+END;
+$$ LANGUAGE 'plpgsql';
+
+DROP TRIGGER IF EXISTS tr_awarding_del_before ON awarding;
+
+CREATE TRIGGER tr_awarding_del_before AFTER DELETE ON awarding 
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_awarding_before_del(); 
+
+CREATE OR REPLACE FUNCTION ins_update_city_view()
+RETURNS TRIGGER AS $$
+BEGIN
+	INSERT INTO city VALUES (NEW.city_id, NEW.city, NEW.region_id);
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER instied_update_city_view INSTEAD OF INSERT ON city_view
+FOR EACH ROW 
+EXECUTE PROCEDURE ins_update_city_view();
+
+CREATE OR REPLACE FUNCTION tr_funct_city()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE city
+		SET  city = UPPER(LEFT(city, 1)) || RIGHT(city,-1)
+		WHERE city_id = NEW.city_id;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_city AFTER INSERT ON city
+FOR EACH ROW 
+EXECUTE PROCEDURE tr_funct_city();
+
+CREATE OR REPLACE FUNCTION fio_upper_owner()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE owner
+		SET  surname = UPPER(LEFT(surname, 1)) || RIGHT(surname,-1)
+		WHERE owner_id = NEW.owner_id;
+	UPDATE owner
+		SET  name = UPPER(LEFT(name, 1)) || RIGHT(name,-1)
+		WHERE owner_id = NEW.owner_id;
+	UPDATE owner
+		SET  midname = UPPER(LEFT(midname, 1)) || RIGHT(midname,-1)
+		WHERE owner_id = NEW.owner_id;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_owner_fio AFTER INSERT ON owner
+FOR EACH ROW 
+EXECUTE PROCEDURE fio_upper_owner();
+
+CREATE OR REPLACE FUNCTION n_upper_dog()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE dog
+		SET  nickname = UPPER(LEFT(nickname, 1)) || RIGHT(nickname,-1)
+		WHERE dog_id = NEW.dog_id;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_dog_n AFTER INSERT ON dog
+FOR EACH ROW 
+EXECUTE PROCEDURE n_upper_dog();
+
+CREATE OR REPLACE FUNCTION n_upper_dictr()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE district
+		SET  district_name = UPPER(LEFT(district_name, 1)) || RIGHT(district_name,-1)
+		WHERE district_id = NEW.district_id;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_distr_n AFTER INSERT ON district
+FOR EACH ROW 
+EXECUTE PROCEDURE n_upper_dictr();
+
+CREATE OR REPLACE FUNCTION n_upper_region()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE region
+		SET  region = UPPER(LEFT(region, 1)) || RIGHT(region,-1)
+		WHERE region_id = NEW.region_id;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_region_n AFTER INSERT ON region
+FOR EACH ROW 
+EXECUTE PROCEDURE n_upper_region();
+
+CREATE OR REPLACE FUNCTION trigger_city_update() RETURNS TRIGGER AS 
+$$
+ BEGIN
+  UPDATE city SET region_id=NEW.region_id WHERE region_id=OLD.region_id;
+  RETURN OLD;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER tr_city_update AFTER UPDATE ON region 
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_city_update(); 
+--создание индексов
+CREATE INDEX idx_price_dog ON dog(price);
+CREATE INDEX idx_year_birth_dog ON dog(year_birth);
+CREATE INDEX idx_year_opened_club ON club(year_opened);
+CREATE INDEX idx_number_viewers_comp ON competition(number_viewers);
+CREATE INDEX idx_date_event_comp ON competition(date_event);
+CREATE INDEX idx_end_licencest_club ON club(end_licences);
+CREATE INDEX idx_ent_fee_club ON club(ent_fee);
+CREATE INDEX idx_partic_fee_club ON competition(partic_fee);
+--создание домена
+CREATE DOMAIN fees AS integer 
+ CHECK (VALUE BETWEEN 500 AND 5000) NOT NULL;
